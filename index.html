@@ -69,4 +69,50 @@ window.fiscalFlowParseNf=function(text){
 // Validação final dos campos extraídos: a leitura automática é uma sugestão, não uma confirmação fiscal.
 function fiscalFlowValidCnpj(value){const d=String(value||'').replace(/\D/g,'');if(!d)return true;if(d.length!==14||/^([0-9])\1{13}$/.test(d))return false;const digit=(base,factors)=>{let sum=0;for(let i=0;i<factors.length;i++)sum+=Number(base[i])*factors[i];const r=sum%11;return r<2?0:11-r};const a=digit(d,[5,4,3,2,9,8,7,6,5,4,3,2]);const b=digit(d.slice(0,12)+a,[6,5,4,3,2,9,8,7,6,5,4,3,2]);return d.endsWith(String(a)+String(b))}
 document.addEventListener('submit',function(e){if(!e.target||e.target.id!=='nf-form')return;const number=document.querySelector('#nf-number'),supplier=document.querySelector('#nf-supplier'),cnpj=document.querySelector('#nf-cnpj'),issueDate=document.querySelector('#nf-date'),amount=document.querySelector('#nf-amount');const errors=[];if(!number?.value.trim())errors.push('informe o número da nota');if(!supplier?.value.trim())errors.push('informe o fornecedor');if(cnpj?.value.trim()&&!fiscalFlowValidCnpj(cnpj.value))errors.push('confira o CNPJ: os dígitos verificadores não são válidos');if(!issueDate?.value||Number.isNaN(Date.parse(issueDate.value+'T12:00:00')))errors.push('informe uma data de emissão válida');else if(issueDate.value>new Date().toISOString().slice(0,10))errors.push('a data de emissão não pode estar no futuro');if(!amount?.value||!Number.isFinite(Number(amount.value))||Number(amount.value)<=0)errors.push('informe um valor total maior que zero');if(errors.length){e.preventDefault();e.stopImmediatePropagation();const status=document.querySelector('#parse-status');if(status){status.textContent='Revise antes de salvar: '+errors.join('; ')+'.';status.style.color='#b54747'}toast('Cadastro não salvo. Confira os campos destacados na mensagem.')}},true);
+// Ajustes para os dois modelos reais enviados: NFS-e municipal e DANFSe nacional.
+window.fiscalFlowParseNf=function(text){
+  const raw=String(text||'').replace(/[\u00a0\u200b\ufeff]/g,' '),lines=raw.split(/\n/).map(s=>s.trim()).filter(Boolean),flat=raw.replace(/[ \t]+/g,' ');
+  const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
+  const moneyNum=s=>{if(!s)return '';const v=Number(s.replace(/\./g,'').replace(',','.'));return Number.isFinite(v)?v:''};
+  let number='';
+  let m=flat.match(/N[ÚU]MERO\s+DA\s+NFS?-?E[\s\S]{0,50}?\b(\d{1,15})\b/i);
+  if(!m)m=flat.match(/N[ÚU]MERO\s+DA\s+NOTA(?:\s+FISCAL)?[\s\S]{0,50}?\b(\d{1,15})\b/i);
+  if(!m)m=flat.match(/N[º°.]?\s*NFS?-?E\s*[:#-]?\s*(\d{1,15})/i);
+  if(m)number=m[1];
+  let supplier='';
+  const receipt=flat.match(/RECEBI\(EMOS\)\s+DE\s+(.+?)\s+O\s+SERVI[ÇC]O\s+CONSTANTE/i);
+  if(receipt)supplier=clean(receipt[1]);
+  if(!supplier){
+    for(let i=0;i<lines.length;i++){
+      if(/PRESTADOR\s*\/\s*FORNECEDOR/i.test(lines[i])){
+        for(let j=i+1;j<Math.min(lines.length,i+12);j++){
+          if(/NOME\s*\/\s*(?:NOME EMPRESARIAL|RAZ[ÃA]O SOCIAL)/i.test(lines[j])){
+            const candidate=clean(lines[j+1]);
+            if(candidate&&!/^\d/.test(candidate)&&!/(CNPJ|CPF|ENDERE[ÇC]O|MUNIC[IÍ]PIO|CEP|TELEFONE|E-MAIL)/i.test(candidate))supplier=candidate;
+            if(supplier)break;
+          }
+        }
+      }
+      if(supplier)break;
+    }
+  }
+  if(!supplier){
+    const idx=lines.findIndex(s=>/PRESTADOR DE SERVI[ÇC]OS|DADOS DO PRESTADOR|IDENTIFICA[ÇC][ÃA]O DO EMITENTE/i.test(s));
+    if(idx>=0){for(let j=Math.max(0,idx-4);j<Math.min(lines.length,idx+10);j++){const c=clean(lines[j].replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,''));if(c.length>=5&&c.length<=100&&/[A-ZÀ-Ú]{3}/i.test(c)&&!/(PRESTADOR|TOMADOR|SERVI[ÇC]OS|CNPJ|CPF|RAZ[ÃA]O SOCIAL|NOME EMPRESARIAL|INSCRI[ÇC][ÃA]O|ENDERE[ÇC]O|C[ÓO]DIGO|VERIFICA[ÇC][ÃA]O|DATA E HORA|N[ÚU]MERO DA NFS)/i.test(c)&&!/^\d/.test(c)){supplier=c;break}}}
+  }
+  let cnpj='';
+  const providerIndex=lines.findIndex(s=>/PRESTADOR\s*\/\s*FORNECEDOR|PRESTADOR DE SERVI[ÇC]OS/i.test(s));
+  const cnpjRe=/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/;
+  if(providerIndex>=0){for(let radius=0;radius<14&&!cnpj;radius++){for(const i of [providerIndex+radius,providerIndex-radius]){if(i>=0&&i<lines.length){const hit=lines[i].match(cnpjRe);if(hit){cnpj=hit[0];break}}}}}
+  if(!cnpj){const c=flat.match(/CNPJ(?:\s*\/\s*CPF)?[^\d]{0,50}(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/i);if(c)cnpj=c[1]}
+  let date='';
+  m=flat.match(/DATA(?:\s+E\s+HORA)?\s+(?:DE\s+)?EMISS[ÃA]O(?:\s+DA\s+NFS?-?E)?[\s\S]{0,100}?(\d{2})[\/.\-](\d{2})[\/.\-](\d{4})/i);
+  if(!m)m=flat.match(/(\d{2})[\/.\-](\d{2})[\/.\-](\d{4})\s+às\s+\d{2}:\d{2}/i);
+  if(m)date=m[3]+'-'+m[2]+'-'+m[1];
+  let amount='';
+  const amountPatterns=[/VALOR\s+DA\s+OPERA[ÇC][ÃA]O\s*\/\s*SERVI[ÇC]O[\s\S]{0,90}?R\$\s*([\d.]+,\d{2})/i,/VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS?-?E[\s\S]{0,90}?R\$\s*([\d.]+,\d{2})/i,/VALOR\s+TOTAL\s+DOS\s+SERVI[ÇC]OS[\s\S]{0,90}?R\$\s*([\d.]+,\d{2})/i,/VALOR\s+TOTAL\s+DA\s+NFS?-?E[\s\S]{0,90}?R\$\s*([\d.]+,\d{2})/i];
+  for(const re of amountPatterns){const hit=flat.match(re);if(hit){amount=moneyNum(hit[1]);break}}
+  if(amount===''){const hits=[...flat.matchAll(/R\$\s*([\d.]+,\d{2})/g)];if(hits.length)amount=moneyNum(hits[hits.length-1][1])}
+  return {number,supplier,cnpj,date,amount};
+};
 </script></body></html>
