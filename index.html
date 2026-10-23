@@ -74,22 +74,18 @@ window.fiscalFlowParseNf = function(text) {
   const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
   const flat=raw.replace(/\s+/g,' ');
   const get=(re,src=flat)=>{const m=src.match(re);return m?m[1].trim():''};
-  // Identificar o número apenas por rótulos explícitos, sem capturar números soltos da página.
+  // Número municipal: rótulo e valor podem estar em colunas distantes na mesma linha.
   let number='';
-  const numberPatterns=[
+  const explicitNumberPatterns=[
     /NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i,
     /N[uú]mero\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i,
-    /N[º°.]?\s*da\s+Nota\s+Fiscal\s*[:\-]?\s*(\d{1,15})/i,
-    /N[uú]mero\s+da\s+Nota\s+Fiscal\s*[:\-]?\s*(\d{1,15})/i
+    /N[º°.]?\s*da\s+Nota\s+Fiscal[^\n\d]{0,100}(\d{1,15})/i,
+    /N[uú]mero\s+da\s+Nota\s+Fiscal[^\n\d]{0,100}(\d{1,15})/i
   ];
-  for(const re of numberPatterns){const m=flat.match(re);if(m){number=m[1];break;}}
+  for(const re of explicitNumberPatterns){const m=raw.match(re);if(m){number=m[1];break;}}
   if(!number){
-    for(let i=0;i<lines.length;i++){
-      if(!/N[uú]mero\s+da\s+(?:NFS-e|Nota Fiscal)/i.test(lines[i]))continue;
-      const nearby=lines.slice(i,i+3).join(' ');
-      const m=nearby.match(/(?:NFS-e|Nota Fiscal)[^\d]{0,30}(\d{1,15})/i);
-      if(m){number=m[1];break;}
-    }
+    const labelLine=lines.find(s=>/N[º°.]?\s*da\s+Nota\s+Fiscal/i.test(s));
+    if(labelLine){const nums=labelLine.match(/\b\d{1,15}\b/g)||[];if(nums.length)number=nums[nums.length-1];}
   }
 
   const cnpjRe=/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
@@ -99,23 +95,25 @@ window.fiscalFlowParseNf = function(text) {
   if(!cnpj){const m=flat.match(/CNPJ(?:\s*\/\s*CPF(?:\s*\/\s*NIF)?)?\s*[:\-]?\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i);if(m)cnpj=m[1];}
 
   let supplier='';
+  // Modelos municipais: PRESTADOR seguido de "Razão Social:".
   if(providerIndex>=0){
-    const nameLabel=lines.findIndex((s,i)=>i>providerIndex&&/Nome\s*\/\s*Nome Empresarial|Nome\/Raz[aã]o Social/i.test(s));
-    if(nameLabel>=0){
-      for(let i=nameLabel+1;i<Math.min(lines.length,nameLabel+4);i++){
-        let s=lines[i].replace(/\s+(?:S[aã]o Lu[ií]s|Munic[ií]pio de)\s*\/.*$/i,'').trim();
-        s=s.replace(/\s+\d{5}-\d{3}.*$/,'').trim();
-        if(s.length>3&&!/^(CNPJ|CPF|Inscri[cç][aã]o|Munic[ií]pio|Telefone|Endere[cç]o)/i.test(s)){supplier=s;break;}
-      }
+    for(let i=providerIndex;i<Math.min(lines.length,providerIndex+12);i++){
+      const m=lines[i].match(/Raz[aã]o Social\s*:\s*(.+)$/i);
+      if(m){supplier=m[1].trim();break;}
     }
   }
   if(!supplier){
-    const m=flat.match(/(?:Nome\/Raz[aã]o Social|Raz[aã]o Social)\s+(.{3,120}?)\s+(?=CNPJ|CPF|Inscri[cç][aã]o Municipal)/i);
+    const m=raw.match(/(?:Nome\/Raz[aã]o Social|Raz[aã]o Social)\s*:\s*([^\n\r]+)/i);
     if(m)supplier=m[1].trim();
   }
-  // Corta campos de endereço/município que alguns PDFs colocam na mesma linha do nome.
-  supplier=supplier.replace(/\s+(?:S[aã]o Lu[ií]s|Munic[ií]pio|Endere[cç]o|CNPJ|CPF)\b.*$/i,'').trim();
-  supplier=supplier.replace(/\s+\d{2}\.\d{3}-\d{3}.*$/,'').trim();
+  // Se houver várias Razão Social, priorizar a que aparece depois de PRESTADOR, antes de TOMADOR.
+  if(providerIndex>=0){
+    const tomadorIndex=lines.findIndex((s,i)=>i>providerIndex&&/^TOMADOR\b/i.test(s));
+    const section=lines.slice(providerIndex+1,tomadorIndex>providerIndex?tomadorIndex:providerIndex+15);
+    const row=section.find(s=>/Raz[aã]o Social\s*:/i.test(s));
+    if(row){const m=row.match(/Raz[aã]o Social\s*:\s*(.+)$/i);if(m)supplier=m[1].trim();}
+  }
+  supplier=supplier.replace(/\s+(?:Nome Fantasia|Endere[cç]o|CNPJ|CPF|Inscri[cç][aã]o|E-mail|Fone)\s*:.*/i,'').trim();
 
   let date='';
   const datePatterns=[
@@ -128,32 +126,24 @@ window.fiscalFlowParseNf = function(text) {
   for(const re of datePatterns){const m=flat.match(re);if(m){date=m[3]+'-'+m[2]+'-'+m[1];break;}}
   if(!date){const m=flat.match(/(\d{2})\/(\d{2})\/(\d{4})\s+\d{2}:\d{2}:\d{2}/);if(m)date=m[3]+'-'+m[2]+'-'+m[1];}
 
-  // Regra de negócio: registrar exclusivamente o valor líquido. Nunca inferir pelo valor bruto.
+  // Regra de negócio: sempre capturar o valor líquido, nunca o bruto.
   let amountText='';
-  const liquidPatterns=[
-    /VALOR L[IÍ]QUIDO\s*\(\s*R\$\s*\)\s*(?:R\$\s*)?([\d.]+,\d{2})/i,
-    /VALOR L[IÍ]QUIDO(?:\s+DA\s+NFS?-?E)?\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i,
-    /VALOR L[IÍ]QUIDO[^\n]{0,300}?\s(?:R\$\s*)?([\d.]+,\d{2})/i,
-    /Valor L[ií]quido da NFS-e\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i
-  ];
-  for(const re of liquidPatterns){
-    const hit=flat.match(re);
-    if(hit){amountText=hit[1];break;}
-  }
-  // Alguns PDFs separam o rótulo do valor em linhas distintas. Só examinar a linha do rótulo
-  // e a linha imediatamente seguinte; não buscar valores de serviços, impostos ou tomador.
-  if(!amountText){
-    for(let i=0;i<lines.length&&!amountText;i++){
-      if(!/VALOR L[IÍ]QUIDO/i.test(lines[i]))continue;
-      const sameLine=lines[i].match(/(?:R\$\s*)?([\d.]+,\d{2})\b/i);
-      if(sameLine){amountText=sameLine[1];break;}
-      const next=lines[i+1]||'';
-      const nextMoney=next.match(/^(?:R\$\s*)?([\d.]+,\d{2})\s*$/i);
-      if(nextMoney){amountText=nextMoney[1];break;}
+  for(let i=0;i<lines.length;i++){
+    if(!/VALOR\s+L[IÍ]QUIDO\s*\(\s*R\$\s*\)/i.test(lines[i])&&!/VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS-e/i.test(lines[i]))continue;
+    // Em notas municipais, o rótulo fica na linha de cabeçalho e os valores na linha seguinte;
+    // o valor líquido é o último valor monetário dessa linha.
+    const candidates=[lines[i],lines[i+1]||''];
+    for(const candidate of candidates){
+      const matches=[...candidate.matchAll(/(?:R\$\s*)?([\d.]+,\d{2})/g)];
+      if(matches.length){amountText=matches[matches.length-1][1];break;}
     }
+    if(amountText)break;
   }
-  const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';
-  return {number,supplier,cnpj,date,amount};
+  if(!amountText){
+    const m=raw.match(/VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS-e\s*[:\-]?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
+    if(m)amountText=m[1];
+  }
+  const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';  return {number,supplier,cnpj,date,amount};
 };
 </script>
 <script>
