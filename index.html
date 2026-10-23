@@ -76,11 +76,13 @@ window.fiscalFlowParseNf = function(text) {
   const get=(re,src=flat)=>{const m=src.match(re);return m?m[1].trim():''};
   let number=get(/NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i);
   if(!number) number=get(/N[uú]mero\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i);
+  if(!number) number=get(/N[º°.]?\s*da\s+Nota\s+Fiscal\s*[:\-]?\s*(\d{1,15})/i);
   if(!number) {const i=lines.findIndex(s=>/N[uú]mero da NFS-e/i.test(s));if(i>=0)number=lines.slice(i+1,i+4).find(s=>/^\d{1,15}$/.test(s))||'';}
+  if(!number) {const i=lines.findIndex(s=>/N[º°.]?\s*da\s+Nota\s+Fiscal/i.test(s));if(i>=0){const m=lines.slice(i,i+3).join(' ').match(/\b(\d{1,15})\b/);if(m)number=m[1];}}
 
   const cnpjRe=/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
   let cnpj='';
-  const providerIndex=lines.findIndex(s=>/PRESTADOR\s*\/\s*FORNECEDOR|PRESTADOR DE SERVI[CÇ]OS/i.test(s));
+  const providerIndex=lines.findIndex(s=>/PRESTADOR\s*\/\s*FORNECEDOR|PRESTADOR(?:\s+DE)?\s+SERVI[CÇ]OS|^PRESTADOR$/i.test(s));
   if(providerIndex>=0) for(let i=providerIndex;i<Math.min(lines.length,providerIndex+15)&&!cnpj;i++){const m=lines[i].match(cnpjRe);if(m)cnpj=m[0];}
   if(!cnpj){const m=flat.match(/CNPJ(?:\s*\/\s*CPF(?:\s*\/\s*NIF)?)?\s*[:\-]?\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i);if(m)cnpj=m[1];}
 
@@ -108,6 +110,7 @@ window.fiscalFlowParseNf = function(text) {
     /DATA E HORA DA EMISS[ÃA]O DA NFS-e\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
     /Data e Hora de Emiss[aã]o da NFS-e\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
     /Data\s+(?:de\s+)?Emiss[aã]o\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
+    /Emitido\s+em\s+(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
     /Compet[eê]ncia\s+(?:da\s+NFS-e\s*)?[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i
   ];
   for(const re of datePatterns){const m=flat.match(re);if(m){date=m[3]+'-'+m[2]+'-'+m[1];break;}}
