@@ -74,11 +74,23 @@ window.fiscalFlowParseNf = function(text) {
   const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
   const flat=raw.replace(/\s+/g,' ');
   const get=(re,src=flat)=>{const m=src.match(re);return m?m[1].trim():''};
-  let number=get(/NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i);
-  if(!number) number=get(/N[uú]mero\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i);
-  if(!number) number=get(/N[º°.]?\s*da\s+Nota\s+Fiscal\s*[:\-]?\s*(\d{1,15})/i);
-  if(!number) {const i=lines.findIndex(s=>/N[uú]mero da NFS-e/i.test(s));if(i>=0)number=lines.slice(i+1,i+4).find(s=>/^\d{1,15}$/.test(s))||'';}
-  if(!number) {const i=lines.findIndex(s=>/N[º°.]?\s*da\s+Nota\s+Fiscal/i.test(s));if(i>=0){const m=lines.slice(i,i+3).join(' ').match(/\b(\d{1,15})\b/);if(m)number=m[1];}}
+  // Identificar o número apenas por rótulos explícitos, sem capturar números soltos da página.
+  let number='';
+  const numberPatterns=[
+    /NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i,
+    /N[uú]mero\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i,
+    /N[º°.]?\s*da\s+Nota\s+Fiscal\s*[:\-]?\s*(\d{1,15})/i,
+    /N[uú]mero\s+da\s+Nota\s+Fiscal\s*[:\-]?\s*(\d{1,15})/i
+  ];
+  for(const re of numberPatterns){const m=flat.match(re);if(m){number=m[1];break;}}
+  if(!number){
+    for(let i=0;i<lines.length;i++){
+      if(!/N[uú]mero\s+da\s+(?:NFS-e|Nota Fiscal)/i.test(lines[i]))continue;
+      const nearby=lines.slice(i,i+3).join(' ');
+      const m=nearby.match(/(?:NFS-e|Nota Fiscal)[^\d]{0,30}(\d{1,15})/i);
+      if(m){number=m[1];break;}
+    }
+  }
 
   const cnpjRe=/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
   let cnpj='';
