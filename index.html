@@ -31,28 +31,44 @@ async function restoreBackup(e){const f=e.target.files[0];e.target.value='';if(!
 openDB().then(()=>renderLogin()).catch(()=>{$('#app').innerHTML='<div class="login"><div class="login-card"><h1>FiscalFlow</h1><p>Este navegador não permitiu abrir o banco de dados local. Abra o sistema em um navegador moderno e em uma origem segura (HTTPS ou localhost).</p></div></div>'});
 </script>
 <script>
-// Leitura progressiva de PDFs: prioriza rótulos e contexto, sem assumir um único layout.
-async function fiscalFlowReadPdf(file){
-  if(!window.pdfjsLib){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Não foi possível carregar o leitor de PDF. Confira a conexão e tente novamente.'));document.head.appendChild(s)});window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
-  const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;let pages=[];
-  for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n),content=await page.getTextContent(),items=content.items.filter(i=>i.str&&i.str.trim()).map(i=>({text:i.str.trim(),x:i.transform[4],y:i.transform[5],w:i.width||0}));items.sort((a,b)=>Math.abs(a.y-b.y)>2?b.y-a.y:a.x-b.x);const rows=[];for(const it of items){let row=rows.find(r=>Math.abs(r.y-it.y)<=2);if(!row){row={y:it.y,items:[]};rows.push(row)}row.items.push(it)}pages.push(rows.map(r=>r.items.sort((a,b)=>a.x-b.x).map(i=>i.text).join(' ')).join('\n'))}
-  const text=pages.join('\n').replace(/[\u00a0\u200b\ufeff]/g,' ').replace(/[ \t]+/g,' ').replace(/\n{2,}/g,'\n');if(text.replace(/\s/g,'').length<20)throw new Error('O PDF parece ser digitalizado como imagem. A leitura automática por texto não encontrou conteúdo; preencha os campos manualmente.');return text;
-}
-function fiscalFlowParseNf(text){
-  const lines=text.split(/\n/).map(s=>s.trim()).filter(Boolean),flat=lines.join('\n');const first=(regex,source=flat)=>{const m=source.match(regex);return m?String(m[1]||m[0]).trim():''};
-  let number=first(/(?:N[ÚU]MERO\s+(?:DA\s+)?NFS?-?E|N[ÚU]MERO\s+DA\s+NOTA(?:\s+FISCAL)?|N[ÚU]MERO\s+DA\s+NF)[^\d]{0,45}(\d{1,15})/i);
-  if(!number){const m=flat.match(/(?:NFS?-?E\s*(?:N[ÚU]MERO|N[º°.]?)?|N[ÚU]MERO\s*[:#-]?)\s*(?:N[º°.]\s*)?(\d{1,15})/i);if(m)number=m[1]}
-  const cnpj=first(/(?:CPF\s*\/\s*CNPJ|CNPJ(?:\s+DO\s+(?:EMITENTE|PRESTADOR|FORNECEDOR))?)[^\d]{0,30}(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/i);
-  const dateMatch=flat.match(/(?:DATA(?:\s+E\s+HORA)?\s+(?:DE\s+)?EMISS[AÃ]O(?:\s+DA\s+NFS?-?E)?|EMITIDA\s+EM)[^\d]{0,35}(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i);const iso=dateMatch?`${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`:'';
-  const amount=first(/(?:VALOR\s+(?:TOTAL\s+(?:DA\s+)?(?:NOTA|NFS?-?E|DOS\s+SERVI[CÇ]OS)?|L[IÍ]QUIDO\s+DA\s+NFS?-?E|TOTAL\s+DA\s+NOTA)[^\dR$]{0,30}R?\$?\s*([\d.]+,\d{2}|\d+,\d{2}|\d+\.\d{2})/i);const money=amount?Number(amount.replace(/\./g,'').replace(',','.')):NaN;
-  const badName=s=>!s||s.length<4||s.length>140||/(?:PARA CERTIFICA[CÇ][AÃ]O|AUTENTICIDADE ACESSE|CHAVE DE ACESSO|C[ÓO]DIGO DE VERIFICA[CÇ][AÃ]O|DOCUMENTO AUXILIAR|NOME\s*\/\s*RAZ[AÃ]O SOCIAL|CPF\s*\/\s*CNPJ|INSCRI[CÇ][AÃ]O ESTADUAL|TOMADOR DE SERVI[CÇ]OS|PRESTADOR DE SERVI[CÇ]OS|DISCRIMINA[CÇ][AÃ]O DOS SERVI[CÇ]OS)/i.test(s);
-  let supplier='';for(let i=0;i<lines.length;i++){if(/PRESTADOR\s*\/\s*FORNECEDOR/i.test(lines[i])){for(let j=i+1;j<Math.min(lines.length,i+8);j++){if(/NOME\s*\/\s*(?:NOME EMPRESARIAL|RAZ[AÃ]O SOCIAL)/i.test(lines[j])){let candidate=(lines[j+1]||'').replace(/\s+(?:S[aã]o Lu[ií]s)\s*\/\s*MA\b.*$/i,'').replace(/\s+\d{1,3}\.\d{3,}.*$/,'').trim();if(!badName(candidate)&&!/^\d/.test(candidate))supplier=candidate;if(supplier)break}}if(supplier)break}}
-  if(!supplier)for(let i=0;i<lines.length;i++){if(/PRESTADOR DE SERVI[CÇ]OS|IDENTIFICA[CÇ][AÃ]O DO EMITENTE|DADOS DO EMITENTE|DADOS DO PRESTADOR/i.test(lines[i])){for(let j=i+1;j<Math.min(lines.length,i+7);j++){let candidate=lines[j].replace(/\s+(?:S[aã]o Lu[ií]s)\s*\/\s*MA\b.*$/i,'').replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,' ').replace(/\b\d{6,}\b/g,' ').replace(/\s{2,}/g,' ').trim();if(!badName(candidate)&&/[A-ZÀ-Ú]/i.test(candidate)&&!/^\d/.test(candidate)){supplier=candidate;break}}if(supplier)break}}
-  if(!supplier){for(const line of lines){const m=line.match(/NOME\s*\/\s*RAZ[AÃ]O\s*SOCIAL\s+(.+)/i);if(m&&!badName(m[1])){supplier=m[1].replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,'').replace(/\b\d{6,}\b/g,'').trim();if(!badName(supplier))break;supplier=''}}}
-  if(!supplier){const m=flat.match(/RECEBI\(EMOS\)\s+DE\s+(.+?)\s+O\s+SERVI[CÇ]O\s+CONSTANTE/i);if(m&&!badName(m[1]))supplier=m[1].trim()}
-  return {number,supplier,cnpj,date:iso,amount:Number.isFinite(money)?money:''};
-}
-window.openNF=function(){if(!pendingPaymentReceipt){openReceiptFirst();return}modal(`<div class="modal-head"><h2>Conferir dados da nota fiscal</h2><button class="close" id="close">×</button></div><p class="sub">Comprovante selecionado: <b>${esc(pendingPaymentReceipt.name)}</b>. Confira os dados reconhecidos antes de salvar; campos não identificados podem ser preenchidos manualmente.</p><div class="drop"><strong>Selecione o PDF da nota fiscal</strong><p>PDF · até 15 MB · leitura local no navegador</p><input type="file" id="nf-file" accept="application/pdf" required></div><div id="parse-status" class="sub" aria-live="polite">Aguardando PDF.</div><form id="nf-form"><div class="field"><label>NÚMERO DA NF</label><input id="nf-number" placeholder="Ex.: 000.123.456" required></div><div class="field"><label>FORNECEDOR / RAZÃO SOCIAL</label><input id="nf-supplier" placeholder="Nome da empresa emissora" required></div><div class="field"><label>CNPJ DO FORNECEDOR</label><input id="nf-cnpj" placeholder="00.000.000/0000-00"></div><div class="detail-grid"><div class="field"><label>DATA DE EMISSÃO</label><input id="nf-date" type="date" required></div><div class="field"><label>VALOR TOTAL (R$)</label><input id="nf-amount" type="number" min="0" step="0.01" placeholder="0,00" required></div></div><div class="modal-actions"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary">Salvar NF com comprovante</button></div></form>`);$('#close').onclick=$('#cancel').onclick=closeModal;$('#nf-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const status=$('#parse-status');if(f.size>15*1024*1024){status.textContent='O PDF ultrapassa o limite de 15 MB.';return}status.textContent='Lendo o PDF e identificando os campos…';try{const text=await fiscalFlowReadPdf(f),data=fiscalFlowParseNf(text);$('#nf-number').value=data.number||'';$('#nf-supplier').value=data.supplier||'';$('#nf-cnpj').value=data.cnpj||'';$('#nf-date').value=data.date||'';$('#nf-amount').value=data.amount===''?'':data.amount;const found=[data.number,data.supplier,data.cnpj,data.date,data.amount!==''].filter(Boolean).length;status.textContent=`Leitura concluída: ${found} de 5 campos identificados. Confira os dados antes de salvar.`;if(!found)status.textContent='O texto do PDF foi lido, mas os campos não foram reconhecidos com segurança. Preencha manualmente.'}catch(err){status.textContent=err.message||'Não foi possível ler automaticamente este PDF. Preencha os campos manualmente.'}};$('#nf-form').onsubmit=async e=>{e.preventDefault();const f=$('#nf-file').files[0];if(!f||f.size>15*1024*1024){toast('Anexe um PDF de até 15 MB');return}const record={id:'nf'+Date.now(),number:$('#nf-number').value.trim(),supplier:$('#nf-supplier').value.trim(),cnpj:$('#nf-cnpj').value.trim(),date:$('#nf-date').value,amount:Number($('#nf-amount').value),status:'paid',nfName:f.name,nfData:await fileData(f),receiptName:pendingPaymentReceipt.name,receiptData:pendingPaymentReceipt.data,receiptDate:pendingPaymentReceipt.date,created:new Date().toISOString().slice(0,10)};try{await put('invoices',record);invoices.unshift(record);pendingPaymentReceipt=null;closeModal();render();toast('NF salva com comprovante obrigatório')}catch(err){toast('Não foi possível salvar. Exporte um backup ou libere espaço.')}}};
+window.fiscalFlowReadPdf = async function(file) {
+  if (!window.pdfjsLib) {
+    await new Promise((resolve,reject) => {
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload=resolve;
+      s.onerror=()=>reject(new Error('Não foi possível carregar o leitor de PDF. Verifique a conexão.'));
+      document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  const pages=[];
+  for(let n=1;n<=pdf.numPages;n++){
+    const page=await pdf.getPage(n), content=await page.getTextContent();
+    const items=content.items.filter(i=>i.str&&i.str.trim()).map(i=>({text:i.str.trim(),x:i.transform[4],y:i.transform[5]}));
+    items.sort((a,b)=>Math.abs(a.y-b.y)>2?b.y-a.y:a.x-b.x);
+    const rows=[];
+    for(const it of items){let row=rows.find(r=>Math.abs(r.y-it.y)<=2);if(!row){row={y:it.y,items:[]};rows.push(row)}row.items.push(it)}
+    pages.push(rows.map(r=>r.items.sort((a,b)=>a.x-b.x).map(i=>i.text).join(' ')).join('\n'));
+  }
+  const result=pages.join('\n').replace(/[ \t]+/g,' ').replace(/\n{2,}/g,'\n');
+  if(result.replace(/\s/g,'').length<20)throw new Error('O PDF não contém texto selecionável; preencha os dados manualmente.');
+  return result;
+};
+window.fiscalFlowParseNf = function(text) {
+  const flat=text.replace(/\s+/g,' ');
+  const pick=(re)=>{const m=flat.match(re);return m?m[1].trim():''};
+  let number=pick(/(?:N[uú]mero\s+(?:da\s+)?(?:NFS?-?e|nota(?:\s+fiscal)?|NF)|NFS?-?e\s+n[uú]mero)\s*[:#-]?\s*(\d{1,15})/i);
+  if(!number) number=pick(/N[uú]mero\s*[:#-]?\s*(\d{1,15})/i);
+  let supplier=pick(/(?:Nome\/Raz[aã]o Social|Raz[aã]o Social|Prestador de Servi[cç]os|Fornecedor)\s*[:\-]?\s*([A-Z0-9ÁÉÍÓÚÂÊÔÃÕÇ&., -]{5,100}?)(?=\s+(?:CPF|CNPJ|Inscri[cç][aã]o|Munic[ií]pio|Endere[cç]o)\b)/i);
+  let cnpj=pick(/(?:CNPJ(?:\s+(?:do\s+)?(?:prestador|emitente|fornecedor))?|CPF\/CNPJ)\s*[:\-]?\s*(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/i);
+  let date=pick(/(?:Data\s+(?:de\s+)?(?:emiss[aã]o|compet[eê]ncia))\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i);
+  if(date){const m=date.match(/(\d{2})[\/.-](\d{2})[\/.-](\d{4})/);date=m?m[3]+'-'+m[2]+'-'+m[1]:''}
+  let amountText=pick(/(?:Valor\s+(?:l[ií]quido\s+da\s+NFS-?e|total\s+dos\s+servi[cç]os|da\s+opera[cç][aã]o|total\s+da\s+nota|total))\s*[:R$\s]*([\d.]+,\d{2})/i);
+  let amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';
+  return {number,supplier,cnpj,date,amount};
+};
 </script>
 <script>
 /* FiscalFlow hotfix: bind automatic PDF extraction to the actual NF file input,
