@@ -456,4 +456,19 @@ document.addEventListener('submit',function(e){
 @media(max-width:600px){.panel>.panel-head>.tools{grid-template-columns:1fr!important}.panel>.panel-head>.tools>#search,.panel>.panel-head>.tools>#filter{grid-column:1!important;grid-row:auto!important}.drop input[type=file]{width:100%!important}}
 </style>
 
+
+<style id="filters-proportion-final">
+.panel>.panel-head{grid-template-columns:minmax(220px,.9fr) minmax(0,1.1fr)!important;gap:22px!important}
+.panel>.panel-head>.tools{grid-template-columns:minmax(0,1fr) minmax(145px,.42fr)!important;gap:8px!important;max-width:100%!important}
+.panel>.panel-head>.tools>#search{grid-column:1!important;grid-row:1!important}
+.panel>.panel-head>.tools>#filter{grid-column:2!important;grid-row:1!important}
+.panel>.panel-head>.tools>#supplier-filter{grid-column:1/-1!important;grid-row:2!important}
+.panel>.panel-head>.tools>#date-from{grid-column:1/-1!important;grid-row:3!important}
+.panel>.panel-head>.tools>#date-to{grid-column:1/-1!important;grid-row:4!important}
+.panel>.panel-head>.tools input,.panel>.panel-head>.tools select{height:40px!important;min-height:40px!important;padding:0 12px!important;box-sizing:border-box!important}
+@media(min-width:1100px){.panel>.panel-head>.tools{max-width:690px!important;justify-self:end!important}}
+@media(max-width:900px){.panel>.panel-head{grid-template-columns:1fr!important}.panel>.panel-head>.tools{max-width:none!important;justify-self:stretch!important;grid-template-columns:minmax(0,1fr) minmax(135px,.42fr)!important}}
+@media(max-width:600px){.panel>.panel-head>.tools{grid-template-columns:1fr!important}.panel>.panel-head>.tools>*{grid-column:1/-1!important;grid-row:auto!important}}
+</style>
+
 </body></html>
