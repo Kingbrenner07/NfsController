@@ -74,25 +74,27 @@ window.fiscalFlowParseNf = function(text) {
   const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
   const flat=raw.replace(/\s+/g,' ');
   const get=(re,src=flat)=>{const m=src.match(re);return m?m[1].trim():''};
-  // O PDF municipal põe o rótulo numa linha e o número na linha seguinte/coluna final.
+  // Número da NF: não capturar números da data ou de outros campos próximos.
   let number='';
-  const numberPatterns=[
+  const directPatterns=[
     /NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i,
-    /N[uú]mero\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i,
-    /N[º°.]?\s*da\s+Nota\s+Fiscal[\s\S]{0,220}?\b(\d{1,15})\b/i,
-    /N[uú]mero\s+da\s+Nota\s+Fiscal[\s\S]{0,220}?\b(\d{1,15})\b/i
+    /Número\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i,
+    /Numero\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i
   ];
-  for(const re of numberPatterns){const m=raw.match(re);if(m){number=m[1];break;}}
-  if(number && /^\d{1,2}$/.test(number))number='';
+  for(const re of directPatterns){const m=raw.match(re);if(m){number=m[1];break;}}
   if(!number){
     const labelIndex=lines.findIndex(s=>/N[º°.]?\s*da\s+Nota\s+Fiscal/i.test(s));
     if(labelIndex>=0){
-      for(const line of lines.slice(labelIndex,labelIndex+4)){
-        const matches=line.match(/\b\d{3,15}\b/g)||[];
-        if(matches.length){number=matches[matches.length-1];}
+      const nearby=lines.slice(labelIndex,Math.min(lines.length,labelIndex+3));
+      for(const line of nearby){
+        if(/\d{2}[\/.-]\d{2}[\/.-]\d{4}/.test(line))continue;
+        const tokens=line.match(/\b\d{1,15}\b/g)||[];
+        const candidate=tokens.filter(n=>!/^20\d{2}$/.test(n));
+        if(candidate.length)number=candidate[candidate.length-1];
       }
     }
   }
+  if(/^20\d{2}$/.test(number))number='';
 
   const cnpjRe=/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
   let cnpj='';
