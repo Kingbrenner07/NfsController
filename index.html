@@ -74,18 +74,24 @@ window.fiscalFlowParseNf = function(text) {
   const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
   const flat=raw.replace(/\s+/g,' ');
   const get=(re,src=flat)=>{const m=src.match(re);return m?m[1].trim():''};
-  // Número municipal: rótulo e valor podem estar em colunas distantes na mesma linha.
+  // O PDF municipal põe o rótulo numa linha e o número na linha seguinte/coluna final.
   let number='';
-  const explicitNumberPatterns=[
+  const numberPatterns=[
     /NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i,
     /N[uú]mero\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i,
-    /N[º°.]?\s*da\s+Nota\s+Fiscal[^\n\d]{0,100}(\d{1,15})/i,
-    /N[uú]mero\s+da\s+Nota\s+Fiscal[^\n\d]{0,100}(\d{1,15})/i
+    /N[º°.]?\s*da\s+Nota\s+Fiscal[\s\S]{0,220}?\b(\d{1,15})\b/i,
+    /N[uú]mero\s+da\s+Nota\s+Fiscal[\s\S]{0,220}?\b(\d{1,15})\b/i
   ];
-  for(const re of explicitNumberPatterns){const m=raw.match(re);if(m){number=m[1];break;}}
+  for(const re of numberPatterns){const m=raw.match(re);if(m){number=m[1];break;}}
+  if(number && /^\d{1,2}$/.test(number))number='';
   if(!number){
-    const labelLine=lines.find(s=>/N[º°.]?\s*da\s+Nota\s+Fiscal/i.test(s));
-    if(labelLine){const nums=labelLine.match(/\b\d{1,15}\b/g)||[];if(nums.length)number=nums[nums.length-1];}
+    const labelIndex=lines.findIndex(s=>/N[º°.]?\s*da\s+Nota\s+Fiscal/i.test(s));
+    if(labelIndex>=0){
+      for(const line of lines.slice(labelIndex,labelIndex+4)){
+        const matches=line.match(/\b\d{3,15}\b/g)||[];
+        if(matches.length){number=matches[matches.length-1];}
+      }
+    }
   }
 
   const cnpjRe=/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
@@ -123,24 +129,22 @@ window.fiscalFlowParseNf = function(text) {
     /Emitido\s+em\s+(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
     /Compet[eê]ncia\s+(?:da\s+NFS-e\s*)?[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i
   ];
-  for(const re of datePatterns){const m=flat.match(re);if(m){date=m[3]+'-'+m[2]+'-'+m[1];break;}}
-  if(!date){const m=flat.match(/(\d{2})\/(\d{2})\/(\d{4})\s+\d{2}:\d{2}:\d{2}/);if(m)date=m[3]+'-'+m[2]+'-'+m[1];}
-
-  // Regra de negócio: sempre capturar o valor líquido, nunca o bruto.
+  for(const re of datePatterns){const m=flat.match(re);if  // Valor líquido: no modelo Porto Velho, o rótulo fica no cabeçalho e o valor
+  // aparece no fim da linha seguinte, após os valores de tributos federais.
   let amountText='';
-  for(let i=0;i<lines.length;i++){
-    if(!/VALOR\s+L[IÍ]QUIDO\s*\(\s*R\$\s*\)/i.test(lines[i])&&!/VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS-e/i.test(lines[i]))continue;
-    // Em notas municipais, o rótulo fica na linha de cabeçalho e os valores na linha seguinte;
-    // o valor líquido é o último valor monetário dessa linha.
-    const candidates=[lines[i],lines[i+1]||''];
-    for(const candidate of candidates){
-      const matches=[...candidate.matchAll(/(?:R\$\s*)?([\d.]+,\d{2})/g)];
-      if(matches.length){amountText=matches[matches.length-1][1];break;}
-    }
-    if(amountText)break;
+  const liquidLabel=/VALOR\s+L[IÍ]QUIDO\s*\(\s*R\$\s*\)|VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS-e/i;
+  const liquidMatch=raw.match(liquidLabel);
+  if(liquidMatch){
+    const after=raw.slice(liquidMatch.index, liquidMatch.index+1800);
+    const section=after.split(/OUTRAS\s+INFORMA[CÇ][ÕO]ES/i)[0];
+    const matches=[...section.matchAll(/(?:R\$\s*)?([\d.]+,\d{2})/g)];
+    if(matches.length)amountText=matches[matches.length-1][1];
   }
   if(!amountText){
-    const m=raw.match(/VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS-e\s*[:\-]?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
+    const m=flat.match(/VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS-e\s*[:\-]?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
+    if(m)amountText=m[1];
+  }
+  const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';-e\s*[:\-]?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
     if(m)amountText=m[1];
   }
   const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';  return {number,supplier,cnpj,date,amount};
