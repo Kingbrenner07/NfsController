@@ -60,50 +60,52 @@ window.fiscalFlowParseNf = function(text) {
   const raw=String(text||'').replace(/\r/g,'');
   const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
   const flat=raw.replace(/\s+/g,' ');
-  const first=(patterns,source=flat)=>{for(const re of patterns){const m=source.match(re);if(m&&m[1])return m[1].trim()}return ''};
-  // NFS-e nacional: número explicitamente rotulado ou formato "198 / chave de acesso".
-  let number=first([
-    /N[º°]?\s*NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i,
-    /N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i,
-    /N[ÚU]MERO\s+DA\s+NFS-e\s*[:#-]?\s*(\d{1,15})/i,
-    /N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i,
-    /N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i
-  ]);
-  if(!number){const m=flat.match(/N[º°]?\s*NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s*[:#-]?\s*(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  if(!number){const m=flat.match(/N[ÚU]MERO\s+DA\s+NFS-e\s+(\d{1,15})/i);if(m)number=m[1]}
-  // Municipal: "Número da NFS-e" vem após o rótulo, antes do código de verificação.
-  if(!number){const i=lines.findIndex(s=>/N[uú]mero da NFS-e/i.test(s));if(i>=0)number=(lines.slice(i+1,i+4).find(s=>/^\d{1,15}$/.test(s))||'')}
+  const get=(re,src=flat)=>{const m=src.match(re);return m?m[1].trim():''};
+  let number=get(/NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i);
+  if(!number) number=get(/N[uú]mero\s+da\s+NFS-e\s*[:\-]?\s*(\d{1,15})/i);
+  if(!number) {const i=lines.findIndex(s=>/N[uú]mero da NFS-e/i.test(s));if(i>=0)number=lines.slice(i+1,i+4).find(s=>/^\d{1,15}$/.test(s))||'';}
+
   const cnpjRe=/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
   let cnpj='';
   const providerIndex=lines.findIndex(s=>/PRESTADOR\s*\/\s*FORNECEDOR|PRESTADOR DE SERVI[CÇ]OS/i.test(s));
-  if(providerIndex>=0){for(let i=providerIndex;i<Math.min(lines.length,providerIndex+12);i++){const m=lines[i].match(cnpjRe);if(m){cnpj=m[0];break}}}
-  if(!cnpj){const i=lines.findIndex(s=>/CNPJ\s*\/\s*CPF\s*\/\s*NIF|CPF\/CNPJ/i.test(s));if(i>=0){for(let j=i;j<Math.min(lines.length,i+5);j++){const m=lines[j].match(cnpjRe);if(m){cnpj=m[0];break}}}}
-  if(!cnpj){const m=flat.match(/CNPJ(?:\s*\/\s*CPF(?:\s*\/\s*NIF)?)?\s*[:\-]?\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i);if(m)cnpj=m[1]}
+  if(providerIndex>=0) for(let i=providerIndex;i<Math.min(lines.length,providerIndex+15)&&!cnpj;i++){const m=lines[i].match(cnpjRe);if(m)cnpj=m[0];}
+  if(!cnpj){const m=flat.match(/CNPJ(?:\s*\/\s*CPF(?:\s*\/\s*NIF)?)?\s*[:\-]?\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i);if(m)cnpj=m[1];}
+
   let supplier='';
-  if(providerIndex>=0){const i=lines.findIndex((s,idx)=>idx>providerIndex&&/Nome\s*\/\s*Nome Empresarial|Nome\/Raz[aã]o Social/i.test(s));if(i>=0)supplier=lines.slice(i+1,i+3).find(s=>s.length>3&&!/^(Munic[ií]pio|CNPJ|Telefone|Endere[cç]o)/i.test(s))||''}
-  if(!supplier){const i=lines.findIndex(s=>/PRESTADOR DE SERVI[CÇ]OS/i.test(s));if(i>=0)supplier=lines.slice(Math.max(0,i-8),i).find(s=>/LTDA|ME\b|EPP\b|S\.A\./i.test(s))||''}
-  if(!supplier){const m=flat.match(/(?:Nome\/Raz[aã]o Social|Raz[aã]o Social)\s+([A-Z0-9ÁÉÍÓÚÂÊÔÃÕÇ&., -]{5,100}?)\s+(?:CPF|CNPJ|Inscri[cç][aã]o)/i);if(m)supplier=m[1]}
+  if(providerIndex>=0){
+    const nameLabel=lines.findIndex((s,i)=>i>providerIndex&&/Nome\s*\/\s*Nome Empresarial|Nome\/Raz[aã]o Social/i.test(s));
+    if(nameLabel>=0){
+      for(let i=nameLabel+1;i<Math.min(lines.length,nameLabel+4);i++){
+        let s=lines[i].replace(/\s+(?:S[aã]o Lu[ií]s|Munic[ií]pio de)\s*\/.*$/i,'').trim();
+        s=s.replace(/\s+\d{5}-\d{3}.*$/,'').trim();
+        if(s.length>3&&!/^(CNPJ|CPF|Inscri[cç][aã]o|Munic[ií]pio|Telefone|Endere[cç]o)/i.test(s)){supplier=s;break;}
+      }
+    }
+  }
+  if(!supplier){
+    const m=flat.match(/(?:Nome\/Raz[aã]o Social|Raz[aã]o Social)\s+(.{3,120}?)\s+(?=CNPJ|CPF|Inscri[cç][aã]o Municipal)/i);
+    if(m)supplier=m[1].trim();
+  }
+  // Corta campos de endereço/município que alguns PDFs colocam na mesma linha do nome.
+  supplier=supplier.replace(/\s+(?:S[aã]o Lu[ií]s|Munic[ií]pio|Endere[cç]o|CNPJ|CPF)\b.*$/i,'').trim();
+  supplier=supplier.replace(/\s+\d{2}\.\d{3}-\d{3}.*$/,'').trim();
+
   let date='';
-  let dateMatch=flat.match(/DATA E HORA DA EMISS[ÃA]O DA NFS-e\s+(\d{2})\/(\d{2})\/(\d{4})/i);
-  if(!dateMatch)dateMatch=flat.match(/Data e Hora de Emiss[aã]o da NFS-e\s+(\d{2})\/(\d{2})\/(\d{4})/i);
-  if(!dateMatch)dateMatch=flat.match(/Data\s+(?:de\s+)?Emiss[aã]o\s+(\d{2})\/(\d{2})\/(\d{4})/i);
-  if(!dateMatch)dateMatch=flat.match(/Compet[eê]ncia\s+(?:da\s+NFS-e\s+)?(\d{2})\/(\d{2})\/(\d{4})/i);
-  if(dateMatch)date=dateMatch[3]+'-'+dateMatch[2]+'-'+dateMatch[1];
-  let amountText=first([
-    /VALOR DA OPERA[CÇ][AÃ]O\s*\/\s*SERVI[CÇ]O\s+R\$\s*([\d.]+,\d{2})/i,
-    /Valor L[ií]quido da NFS-e\s*:?\s*R\$\s*([\d.]+,\d{2})/i,
-    /Valor Total dos Servi[cç]os\s*:?\s*R\$\s*([\d.]+,\d{2})/i,
-    /Total\s+R\$\s*([\d.]+,\d{2})/i
-  ]);
+  const datePatterns=[
+    /DATA E HORA DA EMISS[ÃA]O DA NFS-e\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
+    /Data e Hora de Emiss[aã]o da NFS-e\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
+    /Data\s+(?:de\s+)?Emiss[aã]o\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
+    /Compet[eê]ncia\s+(?:da\s+NFS-e\s*)?[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i
+  ];
+  for(const re of datePatterns){const m=flat.match(re);if(m){date=m[3]+'-'+m[2]+'-'+m[1];break;}}
+  if(!date){const m=flat.match(/(\d{2})\/(\d{2})\/(\d{4})\s+\d{2}:\d{2}:\d{2}/);if(m)date=m[3]+'-'+m[2]+'-'+m[1];}
+
+  let amountText=get(/VALOR DA OPERA[CÇ][AÃ]O\s*\/\s*SERVI[CÇ]O\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
+  if(!amountText)amountText=get(/Valor L[ií]quido da NFS-e\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
+  if(!amountText)amountText=get(/Valor Total dos Servi[cç]os\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
+  if(!amountText)amountText=get(/Valor dos Servi[cç]os\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
+  if(!amountText)amountText=get(/VALOR TOTAL\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
+  if(!amountText)amountText=get(/Total\s+R\$\s*([\d.]+,\d{2})/i);
   const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';
   return {number,supplier,cnpj,date,amount};
 };
