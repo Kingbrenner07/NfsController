@@ -129,25 +129,21 @@ window.fiscalFlowParseNf = function(text) {
     /Emitido\s+em\s+(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
     /Compet[eê]ncia\s+(?:da\s+NFS-e\s*)?[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i
   ];
-  for(const re of datePatterns){const m=flat.match(re);if  // Valor líquido: no modelo Porto Velho, o rótulo fica no cabeçalho e o valor
-  // aparece no fim da linha seguinte, após os valores de tributos federais.
+  for(const re of datePatterns){const m=flat.match(re);if(m){date=m[3]+'-'+m[2]+'-'+m[1];break;}}
+  if(!date){const m=flat.match(/(\d{2})[\/.-](\d{2})[\/.-](\d{4})\s+às\s+\d{2}:\d{2}/i);if(m)date=m[3]+'-'+m[2]+'-'+m[1];}
+
+  // Usar apenas o valor explicitamente associado ao rótulo "Valor líquido".
   let amountText='';
-  const liquidLabel=/VALOR\s+L[IÍ]QUIDO\s*\(\s*R\$\s*\)|VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS-e/i;
-  const liquidMatch=raw.match(liquidLabel);
-  if(liquidMatch){
-    const after=raw.slice(liquidMatch.index, liquidMatch.index+1800);
-    const section=after.split(/OUTRAS\s+INFORMA[CÇ][ÕO]ES/i)[0];
-    const matches=[...section.matchAll(/(?:R\$\s*)?([\d.]+,\d{2})/g)];
-    if(matches.length)amountText=matches[matches.length-1][1];
+  const labelMatch=raw.match(/VALOR\s+L[IÍ]QUIDO\s*(?:\(\s*R\$\s*\)|DA\s+NFS-e)?/i);
+  if(labelMatch){
+    const fromLabel=raw.slice(labelMatch.index,labelMatch.index+1200);
+    const stop=fromLabel.search(/OUTRAS\s+INFORMA[CÇ][ÕO]ES|INFORMA[CÇ][ÕO]ES\s+COMPLEMENTARES/i);
+    const section=stop>=0?fromLabel.slice(0,stop):fromLabel;
+    const values=[...section.matchAll(/(?:R\$\s*)?([\d.]+,\d{2})/g)];
+    if(values.length)amountText=values[values.length-1][1];
   }
-  if(!amountText){
-    const m=flat.match(/VALOR\s+L[IÍ]QUIDO\s+DA\s+NFS-e\s*[:\-]?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
-    if(m)amountText=m[1];
-  }
-  const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';-e\s*[:\-]?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
-    if(m)amountText=m[1];
-  }
-  const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';  return {number,supplier,cnpj,date,amount};
+  const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';
+  return {number,supplier,cnpj,date,amount};
 };
 </script>
 <script>
