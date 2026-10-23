@@ -75,6 +75,42 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 @media(max-width:1050px){.analytics-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:680px){.analytics-grid{gap:12px}.chart-area,.summary-content{padding:14px}.chart-label{font-size:9px}}
 
+
+/* Refinamento da lista de notas: leitura, hierarquia e acessibilidade */
+.panel-head{gap:16px;flex-wrap:wrap}
+.panel-head>div:first-child h2{letter-spacing:-.025em}
+.panel-head>div:first-child p{line-height:1.55}
+.tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.search{min-height:40px;border-radius:11px}
+.table-wrap{border:1px solid #302838;border-radius:14px;overflow:auto;background:#141119}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:780px}
+thead th{position:sticky;top:0;z-index:1;padding:14px 15px;text-align:left;font-size:10px;letter-spacing:.075em;text-transform:uppercase;background:#201a25;border-bottom:1px solid #403347;white-space:nowrap}
+tbody td{padding:15px;border-top:1px solid #2b2431;vertical-align:middle;font-size:12px;line-height:1.5}
+tbody tr:first-child td{border-top:0}
+tbody tr{transition:background .16s ease}
+tbody tr:hover{background:#211a27}
+.nf-code{font-size:13px;font-weight:750;letter-spacing:-.015em;color:#f5f0f7}
+.secondary{font-size:10px;line-height:1.55;color:#a99bb2;margin-top:3px}
+td:nth-child(2){font-weight:600;color:#e5dce9;min-width:180px;max-width:270px;overflow-wrap:anywhere}
+td:nth-child(4) b{font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;color:#e9c7f0}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid #28523f;border-radius:999px;font-size:10px;font-weight:750;white-space:nowrap}
+.pill.pending{border-color:#594325}
+.row-actions{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.icon-btn{width:32px;height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;transition:background .16s,border-color .16s,color .16s}
+.icon-btn:disabled{opacity:.3;cursor:not-allowed}
+.icon-btn:not(:disabled):hover{transform:translateY(-1px)}
+.empty{padding:42px 20px!important;text-align:center;line-height:1.8}
+.empty b{display:block;font-size:14px;margin-bottom:5px}
+.footnote{max-width:900px;line-height:1.7;color:#8f8398;font-size:11px}
+@media(max-width:760px){
+ .panel-head{align-items:flex-start}
+ .tools{width:100%}
+ .tools .search{min-width:0;flex:1}
+ .table-wrap{border-radius:11px}
+ thead th,tbody td{padding:12px}
+}
+@media(prefers-reduced-motion:reduce){tbody tr,.icon-btn{transition:none}}
+
 </style>
 </head><body><div class="app" id="app"></div><div id="modal-root"></div><div id="toast" class="toast hidden"></div>
 <script>
