@@ -228,7 +228,8 @@ window.fiscalFlowParseNf = function(text) {
   const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
   const flat=raw.replace(/\s+/g,' ');
   const get=(re,src=flat)=>{const m=src.match(re);return m?m[1].trim():''};
-  // Identificação do número: priorizar o rótulo e ignorar datas/anos no mesmo bloco.
+  // Identificação do número da NF: ler o valor junto ao rótulo, sem varrer
+  // centenas de caracteres onde podem aparecer datas, CNPJ ou outros números.
   let number='';
   const directPatterns=[
     /NFS-e\s*\/\s*CHAVE\s*NFS-e\s+(\d{1,15})\s*\//i,
@@ -237,12 +238,18 @@ window.fiscalFlowParseNf = function(text) {
   ];
   for(const re of directPatterns){const m=raw.match(re);if(m){number=m[1];break;}}
   if(!number){
-    const label=/N[º°.]?\s*da\s*Nota\s*Fiscal/i.exec(raw);
-    if(label){
-      const windowText=raw.slice(label.index,label.index+500);
-      const withoutDates=windowText.replace(/\b\d{2}[\/.-]\d{2}[\/.-]\d{4}\b/g,' ');
-      const tokens=[...withoutDates.matchAll(/\b\d{4,15}\b/g)].map(m=>m[0]).filter(n=>!/^19\d{2}$|^20\d{2}$/.test(n));
-      if(tokens.length)number=tokens[0];
+    const labelIndex=lines.findIndex(line=>/N[º°.]?\s*da\s*Nota\s*Fiscal/i.test(line));
+    if(labelIndex>=0){
+      const sameLine=lines[labelIndex].match(/N[º°.]?\s*da\s*Nota\s*Fiscal\s*[:\-]?\s*(\d{1,15})/i);
+      if(sameLine)number=sameLine[1];
+      if(!number){
+        for(let i=labelIndex+1;i<Math.min(lines.length,labelIndex+4);i++){
+          const candidate=lines[i].trim();
+          if(/^\d{1,15}$/.test(candidate)&&!/^19\d{2}$|^20\d{2}$/.test(candidate)){number=candidate;break;}
+          const m=candidate.match(/^N[º°.]?\s*[:\-]?\s*(\d{1,15})$/i);
+          if(m&&!/^19\d{2}$|^20\d{2}$/.test(m[1])){number=m[1];break;}
+        }
+      }
     }
   }
   if(/^19\d{2}$|^20\d{2}$/.test(number))number='';
