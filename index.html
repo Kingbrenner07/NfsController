@@ -441,4 +441,19 @@ document.addEventListener('submit',function(e){
 @media(max-width:600px){.panel-head>.tools{grid-template-columns:1fr}.panel-head>.tools>*{grid-column:1/-1!important;grid-row:auto!important}.drop input[type=file]{width:100%;font-size:11px}}
 </style>
 
+
+<style id="visual-fix-v2">
+/* Seletores reais do HTML atual */
+.panel>.panel-head{display:grid!important;grid-template-columns:minmax(220px,.72fr) minmax(0,1.28fr)!important;align-items:center!important;gap:24px!important}
+.panel>.panel-head>.tools{display:grid!important;grid-template-columns:minmax(0,1fr) 190px!important;gap:8px!important;align-content:center!important;width:100%!important;min-width:0!important}
+.panel>.panel-head>.tools>#search{grid-column:1!important;grid-row:1!important;width:100%!important;min-width:0!important}
+.panel>.panel-head>.tools>#filter{grid-column:2!important;grid-row:1!important;width:100%!important;min-width:0!important}
+.panel>.panel-head>.tools>.search{box-sizing:border-box!important;height:42px!important;margin:0!important}
+.drop{display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important}
+.drop input[type=file]{display:block!important;box-sizing:border-box!important;width:min(100%,390px)!important;max-width:100%!important;margin:14px auto 0!important;padding:8px!important;text-align:left!important;border:1px solid var(--line)!important;border-radius:9px!important;background:rgba(12,10,16,.35)!important;color:var(--muted)!important;font-size:12px!important}
+.drop input[type=file]::file-selector-button{margin-right:8px!important;padding:7px 10px!important;border:1px solid var(--line)!important;border-radius:7px!important;background:var(--soft)!important;color:var(--text)!important;font:inherit!important;font-weight:650!important;cursor:pointer!important}
+@media(max-width:900px){.panel>.panel-head{grid-template-columns:1fr!important;gap:14px!important}.panel>.panel-head>.tools{grid-template-columns:minmax(0,1fr) minmax(140px,.55fr)!important}}
+@media(max-width:600px){.panel>.panel-head>.tools{grid-template-columns:1fr!important}.panel>.panel-head>.tools>#search,.panel>.panel-head>.tools>#filter{grid-column:1!important;grid-row:auto!important}.drop input[type=file]{width:100%!important}}
+</style>
+
 </body></html>
