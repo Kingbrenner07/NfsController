@@ -410,4 +410,17 @@ document.addEventListener('submit',function(e){
 },true);
 </script>
 
+
+<style>
+/* Correção de proporção do cabeçalho de notas e alinhamento do seletor de arquivo */
+.panel-head{display:grid;grid-template-columns:minmax(210px,.7fr) minmax(0,1.3fr);align-items:center;gap:22px}
+.panel-head>.tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,.55fr);gap:9px;width:100%;min-width:0}
+.panel-head>.tools>#search{width:100%;min-width:0}
+.panel-head>.tools>#supplier-filter,.panel-head>.tools>#date-from,.panel-head>.tools>#date-to{grid-column:1/-1;width:100%;min-width:0}
+.drop input[type=file]{display:block;width:100%;max-width:390px;margin:14px auto 0;text-align:center;background:transparent;border:0;padding:0;color:var(--muted)}
+.drop input[type=file]::file-selector-button{margin-right:8px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--soft);color:var(--text);font:inherit;font-weight:650;cursor:pointer}
+@media(max-width:900px){.panel-head{grid-template-columns:1fr;gap:14px}.panel-head>.tools{grid-template-columns:minmax(0,1fr) minmax(140px,.65fr)}}
+@media(max-width:600px){.panel-head>.tools{grid-template-columns:1fr}.panel-head>.tools>*{grid-column:1/-1}.drop input[type=file]{max-width:100%}}
+</style>
+
 </body></html>
