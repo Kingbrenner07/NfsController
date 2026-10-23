@@ -106,6 +106,22 @@ window.fiscalFlowParseNf = function(text) {
   if(!amountText)amountText=get(/Valor dos Servi[cç]os\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
   if(!amountText)amountText=get(/VALOR TOTAL\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
   if(!amountText)amountText=get(/Total\s+R\$\s*([\d.]+,\d{2})/i);
+  // Em alguns PDFs, o rótulo e o valor ficam em linhas separadas.
+  if(!amountText){
+    const money=/R?\$?\s*([\d.]+,\d{2})\b/;
+    const label=/VALOR DA OPERA[CÇ][AÃ]O|VALOR L[IÍ]QUIDO DA NFS-e|VALOR TOTAL DOS SERVI[CÇ]OS|VALOR DOS SERVI[CÇ]OS|VALOR TOTAL/i;
+    const stop=/DEDU[CÇ][ÕO]ES|DESCONTO|ISSQN|IRRF|INSS|CSLL|COFINS|PIS|AL[IÍ]QUOTA|VALOR APROXIMADO DOS TRIBUTOS/i;
+    for(let i=0;i<lines.length&&!amountText;i++){
+      if(!label.test(lines[i]))continue;
+      const inline=lines[i].match(money);
+      if(inline){amountText=inline[1];break;}
+      for(let j=i+1;j<Math.min(lines.length,i+4);j++){
+        if(stop.test(lines[j]))break;
+        const m=lines[j].match(money);
+        if(m){amountText=m[1];break;}
+      }
+    }
+  }
   const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';
   return {number,supplier,cnpj,date,amount};
 };
