@@ -113,26 +113,28 @@ window.fiscalFlowParseNf = function(text) {
   for(const re of datePatterns){const m=flat.match(re);if(m){date=m[3]+'-'+m[2]+'-'+m[1];break;}}
   if(!date){const m=flat.match(/(\d{2})\/(\d{2})\/(\d{4})\s+\d{2}:\d{2}:\d{2}/);if(m)date=m[3]+'-'+m[2]+'-'+m[1];}
 
-  let amountText=get(/VALOR DA OPERA[CÇ][AÃ]O\s*\/\s*SERVI[CÇ]O\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
-  if(!amountText)amountText=get(/Valor L[ií]quido da NFS-e\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
-  if(!amountText)amountText=get(/Valor Total dos Servi[cç]os\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
-  if(!amountText)amountText=get(/Valor dos Servi[cç]os\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
-  if(!amountText)amountText=get(/VALOR TOTAL\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i);
-  if(!amountText)amountText=get(/Total\s+R\$\s*([\d.]+,\d{2})/i);
-  // Em alguns PDFs, o rótulo e o valor ficam em linhas separadas.
+  // Regra de negócio: registrar exclusivamente o valor líquido. Nunca inferir pelo valor bruto.
+  let amountText='';
+  const liquidPatterns=[
+    /VALOR L[IÍ]QUIDO\s*\(\s*R\$\s*\)\s*(?:R\$\s*)?([\d.]+,\d{2})/i,
+    /VALOR L[IÍ]QUIDO(?:\s+DA\s+NFS?-?E)?\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i,
+    /VALOR L[IÍ]QUIDO[^\n]{0,300}?\s(?:R\$\s*)?([\d.]+,\d{2})/i,
+    /Valor L[ií]quido da NFS-e\s*:?\s*(?:R\$\s*)?([\d.]+,\d{2})/i
+  ];
+  for(const re of liquidPatterns){
+    const hit=flat.match(re);
+    if(hit){amountText=hit[1];break;}
+  }
+  // Alguns PDFs separam o rótulo do valor em linhas distintas. Só examinar a linha do rótulo
+  // e a linha imediatamente seguinte; não buscar valores de serviços, impostos ou tomador.
   if(!amountText){
-    const money=/R?\$?\s*([\d.]+,\d{2})\b/;
-    const label=/VALOR DA OPERA[CÇ][AÃ]O|VALOR L[IÍ]QUIDO DA NFS-e|VALOR TOTAL DOS SERVI[CÇ]OS|VALOR DOS SERVI[CÇ]OS|VALOR TOTAL/i;
-    const stop=/DEDU[CÇ][ÕO]ES|DESCONTO|ISSQN|IRRF|INSS|CSLL|COFINS|PIS|AL[IÍ]QUOTA|VALOR APROXIMADO DOS TRIBUTOS/i;
     for(let i=0;i<lines.length&&!amountText;i++){
-      if(!label.test(lines[i]))continue;
-      const inline=lines[i].match(money);
-      if(inline){amountText=inline[1];break;}
-      for(let j=i+1;j<Math.min(lines.length,i+4);j++){
-        if(stop.test(lines[j]))break;
-        const m=lines[j].match(money);
-        if(m){amountText=m[1];break;}
-      }
+      if(!/VALOR L[IÍ]QUIDO/i.test(lines[i]))continue;
+      const sameLine=lines[i].match(/(?:R\$\s*)?([\d.]+,\d{2})\b/i);
+      if(sameLine){amountText=sameLine[1];break;}
+      const next=lines[i+1]||'';
+      const nextMoney=next.match(/^(?:R\$\s*)?([\d.]+,\d{2})\s*$/i);
+      if(nextMoney){amountText=nextMoney[1];break;}
     }
   }
   const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';
