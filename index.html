@@ -585,4 +585,56 @@ document.addEventListener('submit',function(e){
 @media(max-width:1100px){.table-wrap table{min-width:1080px!important}}
 </style>
 
+
+<style id="fiscalflow-net-labels">
+/* Padroniza a interface para deixar claro que o valor é líquido, não bruto. */
+.net-value-note{color:#c58bd2;font-size:11px;line-height:1.5;margin-top:5px}
+#nf-amount,#edit-amount{font-variant-numeric:tabular-nums}
+</style>
+<script id="fiscalflow-net-amount-ux">
+(function(){
+  function updateNetLabels(){
+    document.querySelectorAll('label[for="nf-amount"]').forEach(el=>el.textContent='VALOR LÍQUIDO (R$)');
+    document.querySelectorAll('label[for="edit-amount"]').forEach(el=>el.textContent='VALOR LÍQUIDO (R$)');
+    document.querySelectorAll('.detail span').forEach(el=>{
+      if(/VALOR TOTAL/i.test(el.textContent.trim())) el.textContent='VALOR LÍQUIDO';
+    });
+    document.querySelectorAll('.stat-label').forEach(el=>{
+      if(/Valor total das notas/i.test(el.textContent.trim())) el.textContent='Total líquido das notas';
+    });
+    document.querySelectorAll('th').forEach(el=>{
+      if(/^Valor$/i.test(el.textContent.trim())) el.textContent='Valor líquido';
+    });
+    document.querySelectorAll('#nf-amount,#edit-amount').forEach(input=>{
+      input.setAttribute('aria-label','Valor líquido da nota fiscal em reais');
+      input.setAttribute('title','Informe o valor líquido da nota, após retenções e descontos. Não use o valor bruto.');
+      input.min='0.01';
+    });
+    const form=document.querySelector('#nf-form');
+    if(form && !form.querySelector('#net-amount-help')){
+      const amount=document.querySelector('#nf-amount');
+      if(amount){
+        const help=document.createElement('div');
+        help.id='net-amount-help';help.className='net-value-note';
+        help.textContent='Use o valor líquido após retenções/descontos. Se o PDF não o identificar, confira e preencha manualmente; não substitua pelo valor bruto.';
+        amount.insertAdjacentElement('afterend',help);
+      }
+    }
+  }
+  document.addEventListener('DOMContentLoaded',updateNetLabels);
+  const observer=new MutationObserver(updateNetLabels);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('submit',function(e){
+    const form=e.target;
+    if(!form || !['nf-form','edit-nf-form'].includes(form.id)) return;
+    const id=form.id==='nf-form'?'nf-amount':'edit-amount';
+    const amount=document.getElementById(id);
+    if(!amount || !amount.value || !Number.isFinite(Number(amount.value)) || Number(amount.value)<=0){
+      e.preventDefault();e.stopImmediatePropagation();
+      toast('Informe o valor líquido correto da nota. Não use o valor bruto.');
+    }
+  },true);
+})();
+</script>
+
 </body></html>
