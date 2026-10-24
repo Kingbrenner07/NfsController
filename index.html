@@ -272,9 +272,9 @@ window.fiscalFlowParseNf = function(text) {
   ];
   for(const re of directPatterns){const m=raw.match(re);if(m){number=m[1];break;}}
   if(!number){
-    const labelIndex=lines.findIndex(line=>/N[º°.]?\s*da\s*Nota\s*Fiscal/i.test(line));
+    const labelIndex=lines.findIndex(line=>/(?:N[º°.]?\s*da\s*Nota\s*Fiscal|N[úu]mero\s+da\s+Nota\s*Fiscal)/i.test(line));
     if(labelIndex>=0){
-      const sameLine=lines[labelIndex].match(/N[º°.]?\s*da\s*Nota\s*Fiscal\s*[:\-]?\s*(\d{1,15})/i);
+      const sameLine=lines[labelIndex].match(/(?:N[º°.]?\s*da\s*Nota\s*Fiscal|N[úu]mero\s+da\s+Nota\s*Fiscal)\s*[:\-]?\s*(\d{1,15})/i);
       if(sameLine)number=sameLine[1];
       if(!number){
         for(let i=labelIndex+1;i<Math.min(lines.length,labelIndex+4);i++){
