@@ -669,4 +669,25 @@ document.addEventListener('submit',function(e){
 })();
 </script>
 
+
+
+<script>
+// Validação também na edição: manter valor líquido positivo e data de emissão válida.
+document.addEventListener('submit',function(e){
+  const form=e.target;
+  if(!form||form.id!=='edit-nf-form')return;
+  const amount=document.getElementById('edit-amount');
+  const issueDate=document.getElementById('edit-date');
+  const errors=[];
+  if(!amount||!amount.value||!Number.isFinite(Number(amount.value))||Number(amount.value)<=0)errors.push('informe o valor líquido maior que zero; não use o valor bruto');
+  if(!issueDate||!issueDate.value)errors.push('informe a data de emissão');
+  else if(issueDate.value>new Date().toISOString().slice(0,10))errors.push('a data de emissão não pode estar no futuro');
+  if(errors.length){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    toast('Alterações não salvas: '+errors.join('; ')+'.');
+  }
+},true);
+</script>
+
 </body></html>
