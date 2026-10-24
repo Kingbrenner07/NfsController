@@ -597,13 +597,13 @@ document.addEventListener('submit',function(e){
     document.querySelectorAll('label[for="nf-amount"]').forEach(el=>el.textContent='VALOR LÍQUIDO (R$)');
     document.querySelectorAll('label[for="edit-amount"]').forEach(el=>el.textContent='VALOR LÍQUIDO (R$)');
     document.querySelectorAll('.detail span').forEach(el=>{
-      if(/VALOR TOTAL/i.test(el.textContent.trim())) el.textContent='VALOR LÍQUIDO';
+      if(/VALOR TOTAL/i.test(el.textContent.trim())&&el.textContent.trim()!=='VALOR LÍQUIDO') el.textContent='VALOR LÍQUIDO';
     });
     document.querySelectorAll('.stat-label').forEach(el=>{
-      if(/Valor total das notas/i.test(el.textContent.trim())) el.textContent='Total líquido das notas';
+      if(/Valor total das notas/i.test(el.textContent.trim())&&el.textContent.trim()!=='Total líquido das notas') el.textContent='Total líquido das notas';
     });
     document.querySelectorAll('th').forEach(el=>{
-      if(/^Valor$/i.test(el.textContent.trim())) el.textContent='Valor líquido';
+      if(/^Valor$/i.test(el.textContent.trim())&&el.textContent.trim()!=='Valor líquido') el.textContent='Valor líquido';
     });
     document.querySelectorAll('#nf-amount,#edit-amount').forEach(input=>{
       input.setAttribute('aria-label','Valor líquido da nota fiscal em reais');
@@ -647,7 +647,7 @@ document.addEventListener('submit',function(e){
       const input=document.getElementById(id);
       const field=input&&input.closest('.field');
       const label=field&&field.querySelector('label');
-      if(label) label.textContent=labelText;
+      if(label && label.textContent!==labelText) label.textContent=labelText;
       if(input){
         input.setAttribute('aria-label',labelText);
         input.setAttribute('title','Informe o valor líquido após retenções e descontos.');
