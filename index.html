@@ -313,6 +313,22 @@ window.fiscalFlowParseNf = function(text) {
     const row=section.find(s=>/Raz[aã]o Social\s*:/i.test(s));
     if(row){const m=row.match(/Raz[aã]o Social\s*:\s*(.+)$/i);if(m)supplier=m[1].trim();}
   }
+  // Alguns modelos municipais exibem o cabeçalho em uma linha e CNPJ + razão social na seguinte.
+  if(!supplier && providerIndex>=0){
+    const stopIndex=lines.findIndex((s,i)=>i>providerIndex&&/^(?:TOMADOR|INTERMEDI[AÁ]RIO|DISCRIMINA[ÇC][ÃA]O DOS SERVI[ÇC]OS)\b/i.test(s));
+    const endIndex=stopIndex>providerIndex?stopIndex:Math.min(lines.length,providerIndex+18);
+    for(let i=providerIndex+1;i<endIndex;i++){
+      const line=lines[i];
+      if(/CPF\s*\/\s*CNPJ|NOME\s*\/\s*RAZ[AÃ]O SOCIAL/i.test(line)) continue;
+      const match=line.match(/(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})\s+(.+)/i);
+      if(!match) continue;
+      const candidate=match[2].replace(/\s+(?:Inscri[çc][ãa]o|Endere[çc]o|Munic[ií]pio|CEP|Telefone|E-mail)\b.*$/i,'').trim();
+      if(candidate.length>=4&&candidate.length<=140&&!/^\d/.test(candidate)&&!/(TOMADOR|PRESTADOR|SERVI[ÇC]OS|CNPJ|CPF|INSCRI[ÇC][ÃA]O|RAZ[AÃ]O SOCIAL|NOME EMPRESARIAL)/i.test(candidate)){
+        supplier=candidate;
+        break;
+      }
+    }
+  }
   supplier=supplier.replace(/\s+(?:Nome Fantasia|Endere[cç]o|CNPJ|CPF|Inscri[cç][aã]o|E-mail|Fone)\s*:.*/i,'').trim();
 
   let date='';
