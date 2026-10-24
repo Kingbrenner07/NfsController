@@ -326,15 +326,17 @@ window.fiscalFlowParseNf = function(text) {
   for(const re of datePatterns){const m=flat.match(re);if(m){date=m[3]+'-'+m[2]+'-'+m[1];break;}}
   if(!date){const m=flat.match(/(\d{2})[\/.-](\d{2})[\/.-](\d{4})\s+às\s+\d{2}:\d{2}/i);if(m)date=m[3]+'-'+m[2]+'-'+m[1];}
 
-  // Usar apenas o valor explicitamente associado ao rótulo "Valor líquido".
+  // Usar somente o valor próximo ao rótulo "Valor líquido"; nunca inferir pelo bruto.
   let amountText='';
-  const labelMatch=raw.match(/VALOR\s+L[IÍ]QUIDO\s*(?:\(\s*R\$\s*\)|DA\s+NFS-e)?/i);
-  if(labelMatch){
-    const fromLabel=raw.slice(labelMatch.index,labelMatch.index+1200);
-    const stop=fromLabel.search(/OUTRAS\s+INFORMA[CÇ][ÕO]ES|INFORMA[CÇ][ÕO]ES\s+COMPLEMENTARES/i);
-    const section=stop>=0?fromLabel.slice(0,stop):fromLabel;
-    const values=[...section.matchAll(/(?:R\$\s*)?([\d.]+,\d{2})/g)];
-    if(values.length)amountText=values[values.length-1][1];
+  const amountLabel=/VALOR\s+L[IÍ]QUIDO(?:\s+(?:DA\s+)?(?:NFS-e|NOTA))?/i;
+  const amountIndex=lines.findIndex(line=>amountLabel.test(line));
+  if(amountIndex>=0){
+    for(let i=amountIndex;i<Math.min(lines.length,amountIndex+4);i++){
+      const line=lines[i];
+      if(i>amountIndex&&/VALOR\s+(?:TOTAL|DOS\s+SERVI[CÇ]OS|DO\s+SERVI[CÇ]O)|DESCONTO|ISS|INFORMA[CÇ][ÕO]ES\s+COMPLEMENTARES/i.test(line))break;
+      const valueMatch=line.match(/(?:R\$\s*)?([\d.]+,\d{2})/);
+      if(valueMatch){amountText=valueMatch[1];break;}
+    }
   }
   const amount=amountText?Number(amountText.replace(/\./g,'').replace(',','.')):'';
   return {number,supplier,cnpj,date,amount};
