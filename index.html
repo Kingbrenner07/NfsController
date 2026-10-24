@@ -478,4 +478,25 @@ document.addEventListener('submit',function(e){
 @media(max-width:600px){.panel>.panel-head>.tools{grid-template-columns:1fr!important}.panel>.panel-head>.tools>*{grid-column:1/-1!important;grid-row:auto!important}}
 </style>
 
+
+<style id="table-layout-refinement">
+/* Tabela com colunas previsíveis para evitar sobreposição de fornecedor e emissão */
+.table-wrap{width:100%;max-width:100%;overflow-x:auto;border-radius:12px}
+.table-wrap table{width:100%;min-width:980px;table-layout:fixed;border-collapse:separate;border-spacing:0}
+.table-wrap th,.table-wrap td{box-sizing:border-box;padding:14px 14px;vertical-align:middle}
+.table-wrap th:nth-child(1),.table-wrap td:nth-child(1){width:12%}
+.table-wrap th:nth-child(2),.table-wrap td:nth-child(2){width:26%}
+.table-wrap th:nth-child(3),.table-wrap td:nth-child(3){width:9%}
+.table-wrap th:nth-child(4),.table-wrap td:nth-child(4){width:9%}
+.table-wrap th:nth-child(5),.table-wrap td:nth-child(5){width:12%}
+.table-wrap th:nth-child(6),.table-wrap td:nth-child(6){width:19%}
+.table-wrap th:nth-child(7),.table-wrap td:nth-child(7){width:13%}
+.table-wrap td:nth-child(2){white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.table-wrap td:nth-child(3),.table-wrap td:nth-child(4),.table-wrap td:nth-child(5){white-space:nowrap}
+.table-wrap td:nth-child(6) .secondary{white-space:normal;overflow-wrap:anywhere;line-height:1.45}
+.table-wrap .row-actions{display:flex;flex-wrap:nowrap;gap:5px}
+.table-wrap .icon-btn{flex:0 0 auto;padding:7px 8px}
+@media(max-width:1100px){.table-wrap table{min-width:1000px}.table-wrap th,.table-wrap td{padding:12px 10px}}
+</style>
+
 </body></html>
