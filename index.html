@@ -637,4 +637,36 @@ document.addEventListener('submit',function(e){
 })();
 </script>
 
+
+<script>
+// Reforço de consistência visual: os campos são rotulados pelo seu contêiner,
+// sem depender de atributos "for" que alguns formulários antigos não possuem.
+(function(){
+  function applyNetAmountLabels(){
+    [['nf-amount','VALOR LÍQUIDO (R$)'],['edit-amount','VALOR LÍQUIDO (R$)']].forEach(([id,labelText])=>{
+      const input=document.getElementById(id);
+      const field=input&&input.closest('.field');
+      const label=field&&field.querySelector('label');
+      if(label) label.textContent=labelText;
+      if(input){
+        input.setAttribute('aria-label',labelText);
+        input.setAttribute('title','Informe o valor líquido após retenções e descontos.');
+        input.min='0.01';
+      }
+    });
+    document.querySelectorAll('.detail span').forEach(label=>{
+      if(label.textContent.trim()==='VALOR TOTAL') label.textContent='VALOR LÍQUIDO';
+    });
+    document.querySelectorAll('th').forEach(label=>{
+      if(label.textContent.trim()==='Valor') label.textContent='Valor líquido';
+    });
+    document.querySelectorAll('.stat-label').forEach(label=>{
+      if(label.textContent.trim()==='Valor total das notas') label.textContent='Total líquido das notas';
+    });
+  }
+  document.addEventListener('DOMContentLoaded',applyNetAmountLabels);
+  new MutationObserver(applyNetAmountLabels).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
 </body></html>
