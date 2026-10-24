@@ -353,7 +353,7 @@ window.fiscalFlowParseNf = function(text) {
   const datePatterns=[
     /DATA E HORA DA EMISS[ÃA]O DA NFS-e\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
     /Data e Hora de Emiss[aã]o da NFS-e\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
-    /Data\s+(?:de\s+)?Emiss[aã]o\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
+    /Data\s+(?:e\s+Hora\s+)?(?:de\s+)?Emiss[aã]o(?:\s+da\s+NFS-e)?\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
     /Emitido\s+em\s+(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i,
     /Compet[eê]ncia\s+(?:da\s+NFS-e\s*)?[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i
   ];
