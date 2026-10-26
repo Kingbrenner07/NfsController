@@ -188,6 +188,24 @@ canvas{max-width:100%}
 @media(max-width:620px){.panel-head{padding:15px!important}.panel-head .tools{grid-template-columns:1fr!important}.panel-head .tools .search,.panel-head .tools select{height:44px!important}}
 </style>
 
+
+<style id="fiscalflow-modal-header-contrast">
+/* Corrige o cabeçalho escuro com título quase ilegível no modal de comprovante/NF. */
+.modal{background:#fff!important;color:#202b40!important;border-color:#e1e6ef!important}
+.modal-head{position:sticky;top:-1px;z-index:3;background:#fff!important;color:#202b40!important;border-bottom:1px solid #e7ebf2!important;padding:18px 24px 16px!important;margin:-1px -1px 14px!important;border-radius:18px 18px 0 0!important}
+.modal-head h2,.modal-head h2 *{color:#202b40!important}
+.modal-head .close,.modal-head button{background:#f6f7fb!important;color:#43516a!important;border:1px solid #dfe4ed!important}
+.modal>.sub,.modal>p.sub{color:#5f6d82!important}
+.modal form{color:#202b40!important}
+.modal .field label{color:#66738a!important}
+.modal .field input,.modal .field select,.modal .field textarea{background:#fff!important;color:#202b40!important;border-color:#d6deea!important}
+.modal .drop{background:#f8f6fc!important;border-color:#d8c5e5!important;color:#344054!important}
+.modal .drop p,.modal .drop label,.modal .drop strong{color:#536078!important}
+.modal .drop input{color:#344054!important}
+.modal .modal-actions{border-top:1px solid #e3e8f0!important;padding-top:16px!important}
+@media(max-width:620px){.modal-head{padding:16px 16px 14px!important}.modal form{padding:0 16px 18px!important}.modal>.sub,.modal>p.sub{padding:0 16px!important}}
+</style>
+
 </head><body><div class="app" id="app"></div><div id="modal-root"></div><div id="toast" class="toast hidden"></div>
 <script>
 const $=s=>document.querySelector(s);let invoices=[];let logged=false;let query='';let currentFilter='all';let db;let pendingPaymentReceipt=null;
