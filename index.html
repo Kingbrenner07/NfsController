@@ -146,6 +146,27 @@ td:nth-child(4) b{font-size:13px;font-variant-numeric:tabular-nums;white-space:n
 }
 
 </style>
+
+<style>
+/* FiscalFlow — correção de contraste: paleta clara, sem alterar a lógica do sistema. */
+:root{color-scheme:light;--bg:#f4f6fb;--panel:#fff;--text:#182338;--muted:#68768c;--line:#e2e7f0;--accent:#4056c5;--soft:#eef1ff;--green:#16845b;--shadow:0 8px 24px rgba(26,39,66,.055)}
+html,body{background:#f4f6fb!important;color:#182338!important;color-scheme:light!important}
+.app{background:radial-gradient(ellipse at 90% 0%,#eee9ff 0,transparent 38%),#f4f6fb!important;color:#182338!important}
+.sidebar{background:#fff!important;border-right:1px solid #e2e7f0!important;color:#182338!important}
+.stat,.panel,.modal,.login-card{background:#fff!important;color:#182338!important;border-color:#e2e7f0!important}
+.stat-label,.stat-foot,.panel-head p,.top p,.sub,.secondary,.note,.footnote{color:#68768c!important}
+.top h1,.panel-head h2,.stat-value,.nf-code,.detail b,.modal-head h2,.login-card .h1{color:#182338!important}
+.nav{color:#59677e!important}.nav:hover{background:#f5f6ff!important;color:#4056c5!important}.nav.active{background:#eef0ff!important;color:#4056c5!important;border-color:#e1e5ff!important}
+.nav-label,th{color:#7b879b!important}th{background:#f7f8fc!important}td{border-top-color:#edf0f5!important}tbody tr:hover{background:#f8f9fd!important}
+.field input,.field select,.search,.icon-btn,.btn:not(.primary){background:#fff!important;color:#25324a!important;border-color:#dce2ed!important}
+.field input::placeholder,.search::placeholder{color:#8490a4!important;opacity:1}
+.btn.primary{background:linear-gradient(135deg,#4c62db,#394dbb)!important;color:#fff!important;border-color:#4257c9!important}
+.stat-icon,.avatar{background:#f0e8f7!important;color:#8b5b9b!important;border-color:#e6d8ed!important}
+.drop{background:#f8f6fc!important;border-color:#d7c4e2!important}.detail{background:#fafbfe!important}.pill{background:#e5f7ee!important;color:#14794f!important}.pill.pending{background:#fff2d8!important;color:#97630b!important}
+.side-bottom #logout{background:#fff!important;color:#596780!important;border-color:#e2e7f0!important}
+canvas{max-width:100%}
+</style>
+
 </head><body><div class="app" id="app"></div><div id="modal-root"></div><div id="toast" class="toast hidden"></div>
 <script>
 const $=s=>document.querySelector(s);let invoices=[];let logged=false;let query='';let currentFilter='all';let db;let pendingPaymentReceipt=null;
