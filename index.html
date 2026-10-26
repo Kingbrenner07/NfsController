@@ -167,6 +167,27 @@ html,body{background:#f4f6fb!important;color:#182338!important;color-scheme:ligh
 canvas{max-width:100%}
 </style>
 
+<style>
+/* FiscalFlow: reforço de contraste na tabela e refinamento dos filtros. */
+.table-wrap{background:#fff!important;border-color:#dce3ee!important;border-radius:12px!important}
+.table-wrap table{background:#fff!important;color:#182338!important}
+.table-wrap thead th{background:#f3f6fb!important;color:#53627a!important;border-bottom:1px solid #dce3ee!important}
+.table-wrap tbody tr,.table-wrap tbody tr:nth-child(even){background:#fff!important;color:#182338!important}
+.table-wrap tbody tr:nth-child(even){background:#f8faff!important}
+.table-wrap tbody tr:hover{background:#edf2ff!important}
+.table-wrap td{color:#25324a!important;border-top:1px solid #e3e8f0!important}
+.table-wrap td .nf-code,.table-wrap td strong,.table-wrap td b{color:#182338!important}
+.table-wrap td small,.table-wrap td .secondary,.table-wrap td .muted{color:#63728a!important}
+.table-wrap .icon-btn{background:#fff!important;color:#43516a!important;border:1px solid #d8e0ec!important;border-radius:9px!important}
+.table-wrap .icon-btn:hover{background:#edf1ff!important;color:#3549b5!important;border-color:#bfcaf2!important}
+.panel-head{gap:16px!important;padding:18px 22px!important}
+.panel-head .tools{display:grid!important;grid-template-columns:minmax(220px,1fr) minmax(150px,.62fr)!important;align-items:center!important;gap:10px!important}
+.panel-head .tools .search,.panel-head .tools select{box-sizing:border-box!important;width:100%!important;min-width:0!important;height:42px!important;border-radius:10px!important;background:#fff!important;color:#25324a!important;border:1px solid #d8e0ec!important}
+.panel-head .tools .search::placeholder{color:#7b879b!important;opacity:1!important}
+@media(max-width:900px){.panel-head .tools{grid-template-columns:minmax(0,1fr) minmax(130px,.7fr)!important}}
+@media(max-width:620px){.panel-head{padding:15px!important}.panel-head .tools{grid-template-columns:1fr!important}.panel-head .tools .search,.panel-head .tools select{height:44px!important}}
+</style>
+
 </head><body><div class="app" id="app"></div><div id="modal-root"></div><div id="toast" class="toast hidden"></div>
 <script>
 const $=s=>document.querySelector(s);let invoices=[];let logged=false;let query='';let currentFilter='all';let db;let pendingPaymentReceipt=null;
